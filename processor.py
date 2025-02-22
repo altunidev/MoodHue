@@ -1,5 +1,4 @@
-from multiprocessing import Queue, Process
-from sender import send_hue_shift  # Import sender function
+from sender import send_hue_shift
 
 def process_data(queue):
     """Continuously pulls data from the queue and processes it in real time."""
@@ -33,9 +32,12 @@ def process_data(queue):
         send_hue_shift(processed_value)
 
 
+''' # Debugging
+from multiprocessing import Queue, Process
 if __name__ == "__main__":
     queue = Queue()
     
     # Start the processor process
     processor_process = multiprocessing.Process(target=process_data, args=(queue,))
     processor_process.start()
+'''
