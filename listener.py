@@ -15,7 +15,7 @@ def start_listener(queue, ip, port):
     server.serve_forever()
 
 
-# Unit testing
+'''# Unit testing
 from multiprocessing import Queue, Process
 from processor import process_data
 
@@ -33,3 +33,4 @@ if __name__ == "__main__":
     # Start the processor process
     processor_process = Process(target=process_data, args=(queue,))
     processor_process.start()
+'''
