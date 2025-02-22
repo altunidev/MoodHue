@@ -1,7 +1,6 @@
 from sender import send_hue_shift
 
 def process_data(queue):
-    """Continuously pulls data from the queue and processes it in real time."""
     eye_blink_left = 0
     eye_blink_right = 0
     mouth_open = 0
@@ -19,6 +18,7 @@ def process_data(queue):
         elif address == "/avatar/parameters/v2/mouthOpen":
             mouth_open = value
 
+
         # Calculate average value of facial features (normalize to 0-1 range)
         # You could create more complex calculations here
         average_expression = (eye_blink_left + eye_blink_right + mouth_open) / 3
@@ -26,13 +26,14 @@ def process_data(queue):
         # Normalize to 0-1 (this can also be adjusted based on your needs)
         processed_value = max(0, min(1, average_expression))
 
+
         print(f"Calculated HueShift: {processed_value}")  # Debugging statement
         
         # Send processed value to VRChat for hue shift
         send_hue_shift(processed_value)
 
 
-''' # Debugging
+''' # Unit testing (delete later)
 from multiprocessing import Queue, Process
 if __name__ == "__main__":
     queue = Queue()

@@ -14,9 +14,11 @@ def start_listener(queue, ip, port):
     print(f"Listening for OSC messages on {ip}:{port}...")
     server.serve_forever()
 
-# Debugging
+
+# Unit testing
 from multiprocessing import Queue, Process
 from processor import process_data
+
 if __name__ == "__main__":
     queue = Queue()
 

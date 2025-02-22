@@ -15,17 +15,3 @@ def send_hue_shift(value):
         print(f"Sent: \"/avatar/parameters/HueShift\" : {value}")  # Debugging statement
     except Exception as e:
         print(f"Error sending: {e}")                # Debugging if an error occurs
-
-
-'''
-# provided by ChatGPT, not confirmed to work or provide bad output. Commented out for prototyping later.
-from pythonosc import udp_client
-
-def send_osc(send_queue, ip, port):
-    client = udp_client.SimpleUDPClient(ip, port)
-    
-    while True:
-        address, value = send_queue.get()
-        client.send_message(address, value)
-        print(f"Sent OSC: {address} -> {value}")
-'''
