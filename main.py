@@ -14,5 +14,8 @@ if __name__ == "__main__":
     listener_process = Process(target=start_listener, args=(queue, IP, LISTEN_PORT))
     processor_process = Process(target=process_data, args=(queue,))
 
+    listener_process.daemon
+    processor_process.daemon
+
     listener_process.start()
     processor_process.start()
