@@ -15,3 +15,21 @@ This program listens for OSC messages from various biometric tracking sources an
 ## Where does this go?
 
 I eventually plan to integrate a sentiment analysis algorithm of some sort to collect biometric data from various sources (combined ideally for more datapoints) to provide a generally highly accurate emotional-state mood state and provide a float point output via OSC, easily integrated into a single hue shift parameter for a "mood stone" of some sort. This may take a little more time, and may be highly overengineered. Too bad.
+
+## What are the outputs?
+
+[Considerations](considerations_for_emotions.md) made for these values linked.
+
+- [x] `/avatar/parameters/mood/HueShift`
+- [ ] `/.../happy`
+- [ ] `sad`
+- [ ] `anger`
+- [ ] `surprise`
+- [ ] `fear`
+- [ ] `disgust`
+
+might also include:
+
+- [ ] `eepy` (alternatively `tired`)
+- [ ] `stressed`
+- [ ] `
