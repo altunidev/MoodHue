@@ -4,7 +4,7 @@ from collections import deque
 import time
 import datetime
 
-def process_data(queue, debug_level, throttle_ms):
+def process_data(queue, debug_level=2, throttle_ms=500):  # Increased default debug level
     """
     Process facial data with configurable debugging and throttling
     
@@ -51,6 +51,9 @@ def process_data(queue, debug_level, throttle_ms):
     # Create a rolling window for smoothing output
     window_size = 10
     value_history = deque(maxlen=window_size)
+    # Initialize with zeros to prevent empty calculation
+    for _ in range(window_size):
+        value_history.append(0)
     
     # Emotion weight mappings
     emotion_weights = {
@@ -97,6 +100,8 @@ def process_data(queue, debug_level, throttle_ms):
     # For throttling outputs
     last_update_time = time.time()
     update_counter = 0
+    osc_message_counter = 0
+    recognized_params_counter = 0
     
     def debug_print(level, message):
         """Print message only if debug level is sufficient"""
@@ -104,85 +109,131 @@ def process_data(queue, debug_level, throttle_ms):
             timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
             print(f"[{timestamp}] {message}")
     
-    debug_print(0, "Starting processor with debug level " + str(debug_level) + 
-                " and throttle rate " + str(throttle_ms) + "ms")
+    debug_print(0, "=== STARTING PROCESSOR WITH TROUBLESHOOTING MODE ===")
+    debug_print(0, f"Debug level: {debug_level}, Throttle: {throttle_ms}ms")
+    debug_print(0, "Waiting for OSC messages...")
     
     while True:
-        address, value = queue.get()  # Get data from the queue
+        try:
+            address, value = queue.get(timeout=5)  # 5 second timeout for diagnostics
+            osc_message_counter += 1
+            
+            # Always print every OSC message in troubleshooting mode
+            debug_print(1, f"OSC #{osc_message_counter}: {address} -> {value}")
+            
+            # Extract parameter name from address and handle potential format variations
+            parts = address.split('/')
+            param_name = parts[-1]  # Get the last part after splitting
+            
+            # Log full path breakdown for troubleshooting
+            debug_print(2, f"Address parts: {parts}")
+            debug_print(2, f"Extracted param: {param_name}")
+            
+            # Check if this is a parameter we recognize
+            if param_name in facial_params:
+                facial_params[param_name] = value
+                recognized_params_counter += 1
+                debug_print(1, f"✓ Recognized param #{recognized_params_counter}: {param_name} = {value:.3f}")
+            else:
+                debug_print(1, f"✗ Unrecognized param: {param_name}")
+                # Attempt substring matching for more flexible parameter recognition
+                matched = False
+                for known_param in facial_params.keys():
+                    if known_param.lower() in param_name.lower():
+                        debug_print(1, f"  → Possible match with {known_param}?")
+                        matched = True
+                if not matched:
+                    debug_print(1, f"  → No matches found. Consider adding this parameter.")
+            
+            # Only process and send updates at the throttled rate
+            current_time = time.time()
+            time_diff_ms = (current_time - last_update_time) * 1000
+            
+            if time_diff_ms >= throttle_ms:
+                update_counter += 1
+                debug_print(0, f"\n=== PROCESSING UPDATE #{update_counter} ===")
+                debug_print(0, f"Received {osc_message_counter} OSC messages, {recognized_params_counter} recognized")
+                
+                # Show all non-zero parameters
+                active_params = [p for p, v in facial_params.items() if v > 0.01]
+                debug_print(0, f"Active parameters ({len(active_params)}): {', '.join(active_params)}")
+                
+                # Calculate which emotion parameters are present
+                debug_print(0, "Checking emotion parameters:")
+                for emotion, weights in emotion_weights.items():
+                    present_params = [p for p in weights.keys() if facial_params.get(p, 0) > 0.01]
+                    debug_print(0, f"  {emotion}: {len(present_params)}/{len(weights)} parameters present")
+                    if present_params:
+                        debug_print(1, f"    Present: {', '.join(present_params)}")
+                    missing_params = [p for p in weights.keys() if facial_params.get(p, 0) <= 0.01]
+                    if missing_params:
+                        debug_print(1, f"    Missing: {', '.join(missing_params)}")
+                
+                # Calculate emotion scores
+                emotion_scores = {}
+                for emotion, weights in emotion_weights.items():
+                    score = 0
+                    for param, weight in weights.items():
+                        param_value = facial_params.get(param, 0)
+                        contribution = param_value * weight
+                        score += contribution
+                        if param_value > 0.01:
+                            debug_print(2, f"  {emotion} += {param} ({param_value:.2f}) * {weight} = {contribution:.3f}")
+                    emotion_scores[emotion] = score
+                
+                # Calculate neutral score based on absence of other emotions
+                other_emotions_sum = sum(emotion_scores.values())
+                emotion_scores["neutral"] = max(0, 1 - other_emotions_sum)
+                
+                # Find the dominant emotion
+                dominant_emotion = max(emotion_scores, key=emotion_scores.get)
+                dominant_score = emotion_scores[dominant_emotion]
+                
+                # Calculate hue based on emotion blend
+                hue = 0
+                for emotion, score in emotion_scores.items():
+                    if score > 0:
+                        emotion_contribution = emotion_hues[emotion] * score
+                        hue += emotion_contribution
+                        debug_print(2, f"Hue += {emotion} ({score:.3f}) * {emotion_hues[emotion]} = {emotion_contribution:.3f}")
+                
+                # Normalize in case scores add up to more than 1
+                total_score = sum(emotion_scores.values())
+                if total_score > 0:
+                    hue = hue / total_score
+                
+                # Add value to rolling window
+                value_history.append(hue)
+                
+                # Calculate smoothed value
+                smoothed_hue = sum(value_history) / len(value_history)
+                
+                # Log the emotion detection results
+                debug_print(0, "Emotion Scores:")
+                for emotion, score in sorted(emotion_scores.items(), key=lambda x: -x[1]):
+                    debug_print(0, f"  {emotion}: {score:.3f}")
+                
+                debug_print(0, f"Dominant: {dominant_emotion} ({dominant_score:.2f})")
+                debug_print(0, f"Raw Hue: {hue:.3f}, Smoothed Hue: {smoothed_hue:.3f}")
+                
+                # Send smoothed hue value
+                debug_print(0, f"Sending HueShift: {smoothed_hue:.3f}")
+                send_hue_shift(smoothed_hue)
+                
+                # Update the last update time
+                last_update_time = current_time
+                
+                # Insert a divider for readability
+                debug_print(0, "=" * 50)
         
-        # Extract parameter name from address
-        param_name = address.split('/')[-1]
-        
-        # Update parameter value if it exists in our dictionary
-        if param_name in facial_params:
-            facial_params[param_name] = value
-            debug_print(2, f"Updated {param_name}: {value:.3f}")
-        
-        # Only process and send updates at the throttled rate
-        current_time = time.time()
-        time_diff_ms = (current_time - last_update_time) * 1000
-        
-        if time_diff_ms >= throttle_ms:
-            update_counter += 1
-            debug_print(1, f"--- Processing update #{update_counter} ---")
-            
-            # Log current facial parameters at verbose level
-            if debug_level >= 2:
-                debug_print(2, "Current facial parameters:")
-                for param, val in facial_params.items():
-                    if val > 0.05:  # Only show non-zero parameters to reduce noise
-                        debug_print(2, f"  {param}: {val:.3f}")
-            
-            # Calculate emotion scores
-            emotion_scores = {}
-            for emotion, weights in emotion_weights.items():
-                score = 0
-                for param, weight in weights.items():
-                    score += facial_params.get(param, 0) * weight
-                emotion_scores[emotion] = score
-            
-            # Calculate neutral score based on absence of other emotions
-            other_emotions_sum = sum(emotion_scores.values())
-            emotion_scores["neutral"] = max(0, 1 - other_emotions_sum)
-            
-            # Find the dominant emotion
-            dominant_emotion = max(emotion_scores, key=emotion_scores.get)
-            dominant_score = emotion_scores[dominant_emotion]
-            
-            # Calculate hue based on emotion blend
-            hue = 0
-            for emotion, score in emotion_scores.items():
-                if score > 0:
-                    hue += emotion_hues[emotion] * score
-            
-            # Normalize in case scores add up to more than 1
-            total_score = sum(emotion_scores.values())
-            if total_score > 0:
-                hue = hue / total_score
-            
-            # Add value to rolling window
-            value_history.append(hue)
-            
-            # Calculate smoothed value
-            smoothed_hue = sum(value_history) / len(value_history)
-            
-            # Log the emotion detection results
-            debug_print(1, "Emotion Scores:")
-            for emotion, score in emotion_scores.items():
-                if score > 0.05:  # Only show non-trivial emotions
-                    debug_print(1, f"  {emotion}: {score:.3f}")
-            
-            debug_print(0, f"Dominant: {dominant_emotion} ({dominant_score:.2f}) → Hue: {smoothed_hue:.3f}")
-            
-            # Send smoothed hue value
-            send_hue_shift(smoothed_hue)
-            
-            # Update the last update time
-            last_update_time = current_time
-            
-            # Insert a delay for readability if in high debug mode
-            if debug_level >= 2:
-                time.sleep(0.5)  # Half second pause to make logs more readable
-
-# Example usage in main.py:
-# process_data(queue, debug_level=1, throttle_ms=500)
+        except Exception as e:
+            debug_print(0, f"ERROR: {str(e)}")
+            # If queue.get times out, print a diagnostic message
+            if "Empty" in str(e):
+                debug_print(0, "No OSC messages received in the last 5 seconds")
+                debug_print(0, "Possible issues:")
+                debug_print(0, "1. VRCFT is not sending data to the correct port")
+                debug_print(0, "2. Listener process is not receiving or forwarding OSC messages")
+                debug_print(0, "3. OSC address format is different than expected")
+                debug_print(0, f"Total messages received so far: {osc_message_counter}")
+            time.sleep(1)  # Prevent rapid error logging

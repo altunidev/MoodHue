@@ -7,8 +7,8 @@ import argparse
 IP = "127.0.0.1"
 LISTEN_PORT = 9000
 SEND_PORT = 9001
-DEBUG_LEVEL = 3
-DEBUG_THROTTLE = 10
+DEBUG_LEVEL = 2
+DEBUG_THROTTLE = 500
 
 
 if __name__ == "__main__":
