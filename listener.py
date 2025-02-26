@@ -3,7 +3,7 @@ from pythonosc import dispatcher, osc_server
 def receive_osc(queue, address, *args):
     data = (address, args[0])       # Store address and value
     queue.put(data)                 # Send data to the processor
-    print(f"Received OSC: {data}")
+    #print(f"Received OSC: {data}")
 
 def start_listener(queue, ip, port):
 

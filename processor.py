@@ -1,9 +1,19 @@
 from sender import send_hue_shift
 import math
 from collections import deque
+import time
+import datetime
 
-def process_data(queue):
-    # Initialize parameters with default values
+def process_data(queue, debug_level, throttle_ms):
+    """
+    Process facial data with configurable debugging and throttling
+    
+    Args:
+        queue: The queue containing facial tracking data
+        debug_level: 0=minimal, 1=normal, 2=verbose debugging
+        throttle_ms: Minimum milliseconds between hue updates
+    """
+    # Initialize parameters dictionary
     facial_params = {
         # Basic eye parameters
         "eyeBlinkLeft": 0,
@@ -38,11 +48,11 @@ def process_data(queue):
         "noseSneerRight": 0
     }
     
-    # Create a rolling window for smoothing output (prevents flickering)
+    # Create a rolling window for smoothing output
     window_size = 10
     value_history = deque(maxlen=window_size)
     
-    # Emotion weight mappings (these values can be adjusted based on observation)
+    # Emotion weight mappings
     emotion_weights = {
         "happy": {
             "mouthSmile": 0.4,
@@ -72,9 +82,6 @@ def process_data(queue):
             "browUpRight": 0.2,
             "mouthOpen": 0.2,
             "jawOpen": 0.2
-        },
-        "neutral": {
-            # Neutral is calculated based on the absence of other emotions
         }
     }
     
@@ -87,54 +94,95 @@ def process_data(queue):
         "neutral": 0.0     # Red (baseline)
     }
     
+    # For throttling outputs
+    last_update_time = time.time()
+    update_counter = 0
+    
+    def debug_print(level, message):
+        """Print message only if debug level is sufficient"""
+        if debug_level >= level:
+            timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            print(f"[{timestamp}] {message}")
+    
+    debug_print(0, "Starting processor with debug level " + str(debug_level) + 
+                " and throttle rate " + str(throttle_ms) + "ms")
+    
     while True:
         address, value = queue.get()  # Get data from the queue
-        # Strip the prefix to get the parameter name
+        
+        # Extract parameter name from address
         param_name = address.split('/')[-1]
         
-        # Update the parameter in our dictionary if it exists
+        # Update parameter value if it exists in our dictionary
         if param_name in facial_params:
             facial_params[param_name] = value
-            print(f"Updated {param_name}: {value}")
+            debug_print(2, f"Updated {param_name}: {value:.3f}")
         
-        # Calculate emotion scores
-        emotion_scores = {}
-        for emotion, weights in emotion_weights.items():
-            score = 0
-            for param, weight in weights.items():
-                score += facial_params.get(param, 0) * weight
-            emotion_scores[emotion] = score
+        # Only process and send updates at the throttled rate
+        current_time = time.time()
+        time_diff_ms = (current_time - last_update_time) * 1000
         
-        # Calculate neutral score based on absence of other emotions
-        other_emotions_sum = sum(emotion_scores.values())
-        emotion_scores["neutral"] = max(0, 1 - other_emotions_sum)
-        
-        # Find the dominant emotion
-        dominant_emotion = max(emotion_scores, key=emotion_scores.get)
-        dominant_score = emotion_scores[dominant_emotion]
-        
-        # Calculate hue based on emotion blend
-        # This creates a weighted average of the emotions
-        hue = 0
-        for emotion, score in emotion_scores.items():
-            if score > 0:
-                hue += emotion_hues[emotion] * score
-        
-        # Normalize in case scores add up to more than 1
-        total_score = sum(emotion_scores.values())
-        if total_score > 0:
-            hue = hue / total_score
-        
-        # Add value to rolling window
-        value_history.append(hue)
-        
-        # Calculate smoothed value
-        smoothed_hue = sum(value_history) / len(value_history)
-        
-        # Log the emotion detection results
-        print(f"Emotion Scores: {emotion_scores}")
-        print(f"Dominant Emotion: {dominant_emotion} ({dominant_score:.2f})")
-        print(f"Calculated Hue: {hue:.2f}, Smoothed Hue: {smoothed_hue:.2f}")
-        
-        # Send smoothed hue value
-        send_hue_shift(smoothed_hue)
+        if time_diff_ms >= throttle_ms:
+            update_counter += 1
+            debug_print(1, f"--- Processing update #{update_counter} ---")
+            
+            # Log current facial parameters at verbose level
+            if debug_level >= 2:
+                debug_print(2, "Current facial parameters:")
+                for param, val in facial_params.items():
+                    if val > 0.05:  # Only show non-zero parameters to reduce noise
+                        debug_print(2, f"  {param}: {val:.3f}")
+            
+            # Calculate emotion scores
+            emotion_scores = {}
+            for emotion, weights in emotion_weights.items():
+                score = 0
+                for param, weight in weights.items():
+                    score += facial_params.get(param, 0) * weight
+                emotion_scores[emotion] = score
+            
+            # Calculate neutral score based on absence of other emotions
+            other_emotions_sum = sum(emotion_scores.values())
+            emotion_scores["neutral"] = max(0, 1 - other_emotions_sum)
+            
+            # Find the dominant emotion
+            dominant_emotion = max(emotion_scores, key=emotion_scores.get)
+            dominant_score = emotion_scores[dominant_emotion]
+            
+            # Calculate hue based on emotion blend
+            hue = 0
+            for emotion, score in emotion_scores.items():
+                if score > 0:
+                    hue += emotion_hues[emotion] * score
+            
+            # Normalize in case scores add up to more than 1
+            total_score = sum(emotion_scores.values())
+            if total_score > 0:
+                hue = hue / total_score
+            
+            # Add value to rolling window
+            value_history.append(hue)
+            
+            # Calculate smoothed value
+            smoothed_hue = sum(value_history) / len(value_history)
+            
+            # Log the emotion detection results
+            debug_print(1, "Emotion Scores:")
+            for emotion, score in emotion_scores.items():
+                if score > 0.05:  # Only show non-trivial emotions
+                    debug_print(1, f"  {emotion}: {score:.3f}")
+            
+            debug_print(0, f"Dominant: {dominant_emotion} ({dominant_score:.2f}) → Hue: {smoothed_hue:.3f}")
+            
+            # Send smoothed hue value
+            send_hue_shift(smoothed_hue)
+            
+            # Update the last update time
+            last_update_time = current_time
+            
+            # Insert a delay for readability if in high debug mode
+            if debug_level >= 2:
+                time.sleep(0.5)  # Half second pause to make logs more readable
+
+# Example usage in main.py:
+# process_data(queue, debug_level=1, throttle_ms=500)
