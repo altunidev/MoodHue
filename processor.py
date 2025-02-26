@@ -10,19 +10,30 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
     """
     # Initialize parameters dictionary with both standard and alternative naming
     facial_params = {
-        # Eye parameters
+        # Eye params
         "eyeBlinkLeft": {"value": 0, "alt_names": ["EyeBlinkLeft", "LeftEyeBlink", "LeftEyeLid"]},
         "eyeBlinkRight": {"value": 0, "alt_names": ["EyeBlinkRight", "RightEyeBlink", "RightEyeLid"]},
         "eyeOpenLeft": {"value": 0, "alt_names": ["EyeOpenLeft", "LeftEyeOpen", "LeftEyeOpening"]},
         "eyeOpenRight": {"value": 0, "alt_names": ["EyeOpenRight", "RightEyeOpen", "RightEyeOpening"]},
         "eyeSquintLeft": {"value": 0, "alt_names": ["EyeSquintLeft", "LeftEyeSquint"]},
         "eyeSquintRight": {"value": 0, "alt_names": ["EyeSquintRight", "RightEyeSquint"]},
+        "eyeY": {"value": 0, "alt_names": ["EyeY"]},
+        "eyeLeftX": {"value": 0, "alt_names": ["EyeLeftX"]},
+        "eyeRightX": {"value": 0, "alt_names": ["EyeRightX"]},
+        "eyeLidLeft": {"value": 0, "alt_names": ["EyeLidLeft"]},
+        "eyeLidRight": {"value": 0, "alt_names": ["EyeLidRight"]},
         
         # Eyebrow parameters
         "browDownLeft": {"value": 0, "alt_names": ["BrowDownLeft", "LeftBrowDown", "BrowExpressionLeft"]},
         "browDownRight": {"value": 0, "alt_names": ["BrowDownRight", "RightBrowDown", "BrowExpressionRight"]},
         "browUpLeft": {"value": 0, "alt_names": ["BrowUpLeft", "LeftBrowUp", "BrowRaiseLeft"]},
         "browUpRight": {"value": 0, "alt_names": ["BrowUpRight", "RightBrowUp", "BrowRaiseRight"]},
+        "browPinchLeft1": {"value": 0, "alt_names": ["BrowPinchLeft1"]},
+        "browPinchRight1": {"value": 0, "alt_names": ["BrowPinchRight1"]},
+        "browPinchLeft2": {"value": 0, "alt_names": ["BrowPinchLeft2"]},
+        "browPinchRight2": {"value": 0, "alt_names": ["BrowPinchRight2"]},
+        "browInnerUp1": {"value": 0, "alt_names": ["BrowInnerUp1"]},
+        "browInnerUp2": {"value": 0, "alt_names": ["BrowInnerUp2"]},
         
         # Mouth parameters
         "mouthOpen": {"value": 0, "alt_names": ["MouthOpen", "JawOpen", "JawDrop"]},
@@ -30,17 +41,29 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
         "mouthSmile": {"value": 0, "alt_names": ["MouthSmile", "Smile", "SmileLeft", "SmileRight", "MouthCornerPull"]},
         "mouthFrown": {"value": 0, "alt_names": ["MouthFrown", "Frown", "FrownLeft", "FrownRight", "MouthCornerDepressor"]},
         "mouthPucker": {"value": 0, "alt_names": ["MouthPucker", "Pucker", "LipPucker"]},
+        "mouthClosed": {"value": 0, "alt_names": ["MouthClosed"]},
         "mouthShrugUpper": {"value": 0, "alt_names": ["MouthShrugUpper", "UpperLipRaise"]},
         "mouthShrugLower": {"value": 0, "alt_names": ["MouthShrugLower", "LowerLipDepress"]},
+        "mouthUpperUp1": {"value": 0, "alt_names": ["MouthUpperUp1"]},
+        "mouthUpperUp2": {"value": 0, "alt_names": ["MouthUpperUp2"]},
+        "mouthLowerDown1": {"value": 0, "alt_names": ["MouthLowerDown1"]},
+        "mouthLowerDown2": {"value": 0, "alt_names": ["MouthLowerDown2"]},
+        "mouthPress1": {"value": 0, "alt_names": ["MouthPress1"]},
+        "mouthPress2": {"value": 0, "alt_names": ["MouthPress2"]},
+        "tongueOut": {"value": 0, "alt_names": ["TongueOut"]},
         
         # Cheek parameters
         "cheekPuff": {"value": 0, "alt_names": ["CheekPuff", "CheekBlow"]},
         "cheekSquintLeft": {"value": 0, "alt_names": ["CheekSquintLeft", "LeftCheekSquint"]},
         "cheekSquintRight": {"value": 0, "alt_names": ["CheekSquintRight", "RightCheekSquint"]},
+        "cheekPuffSuckLeft1": {"value": 0, "alt_names": ["CheekPuffSuckLeft1"]},
+        "cheekPuffSuckRight1": {"value": 0, "alt_names": ["CheekPuffSuckRight1"]},
         
         # Nose parameters
         "noseSneerLeft": {"value": 0, "alt_names": ["NoseSneerLeft", "LeftNoseSneer", "NoseWrinkleLeft"]},
-        "noseSneerRight": {"value": 0, "alt_names": ["NoseSneerRight", "RightNoseSneer", "NoseWrinkleRight"]}
+        "noseSneerRight": {"value": 0, "alt_names": ["NoseSneerRight", "RightNoseSneer", "NoseWrinkleRight"]},
+        "noseSneer1": {"value": 0, "alt_names": ["NoseSneer1"]},
+        "noseSneer2": {"value": 0, "alt_names": ["NoseSneer2"]}
     }
     
     # Create a mapping from all possible names to standard parameter names

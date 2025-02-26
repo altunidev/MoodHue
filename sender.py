@@ -2,7 +2,7 @@ from pythonosc.udp_client import SimpleUDPClient
 
 # Debugging vars for unit testing
 ip = "127.0.0.1"
-port = 9001             # VRChat's OSC receiver port
+port = 9000             # VRChat's OSC receiver port
 
 
 client = SimpleUDPClient(ip, port)
