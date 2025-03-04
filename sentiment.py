@@ -74,7 +74,7 @@ def map_emotion_to_color_description(hue_value):
 
 def calculate_emotion_scores(current_values):
     """
-    Calculate emotion scores with more aggressive and dynamic scoring.
+    Calculate emotion scores with enhanced debugging and safeguards.
     
     Args:
         current_values (dict): Dictionary of current facial parameter values
@@ -82,17 +82,35 @@ def calculate_emotion_scores(current_values):
     Returns:
         tuple: (emotion_scores, dominant_emotion, dominant_score)
     """
-    # Calculate emotion scores with exponential scaling
+    logger = logging.getLogger(__name__)
+    
+    # Log all current values for debugging
+    logger.debug("Current facial parameter values:")
+    for param, value in current_values.items():
+        logger.debug(f"  {param}: {value}")
+    
+    # Calculate emotion scores
     emotion_scores = {}
+    detailed_scores = {}
+    
     for emotion, weights in EMOTION_WEIGHTS.items():
         score = 0
+        emotion_breakdown = {}
+        
         for param, weight in weights.items():
             param_value = current_values.get(param, 0)
-            # Use exponential scaling to emphasize strong expressions
-            score += (param_value ** 3) * weight
+            
+            # Clip input values to 0-1 range
+            param_value = max(0, min(1, param_value))
+            
+            # Calculate individual parameter contribution
+            param_contribution = param_value * weight
+            emotion_breakdown[param] = param_contribution
+            score += param_contribution
         
-        # Ensure score is between 0 and 1
-        emotion_scores[emotion] = min(1, max(0, score))
+        # Clip total score
+        emotion_scores[emotion] = max(0, min(1, score))
+        detailed_scores[emotion] = emotion_breakdown
     
     # Normalize scores
     total_score = sum(emotion_scores.values())
@@ -105,6 +123,14 @@ def calculate_emotion_scores(current_values):
     # Find the dominant emotion
     dominant_emotion = max(emotion_scores, key=emotion_scores.get)
     dominant_score = emotion_scores[dominant_emotion]
+    
+    # Extensive logging for debugging
+    logger.info("Detailed Emotion Score Breakdown:")
+    for emotion, score in emotion_scores.items():
+        logger.info(f"  {emotion}: {score:.4f}")
+        if emotion in detailed_scores:
+            for param, contrib in detailed_scores[emotion].items():
+                logger.info(f"    {param}: {contrib:.4f}")
     
     return emotion_scores, dominant_emotion, dominant_score
 
