@@ -134,7 +134,7 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
                 hue = calculate_emotion_hue(emotion_scores)
                 
                 # Smooth the hue value
-                smoothed_hue = smooth_value(value_history, hue)
+                smoothed_hue = smooth_value(value_history, hue, 'simple_average')
                 
                 # Log the hue value and emotion details
                 logger.info(f"Dominant Emotion: {dominant_emotion} (Score: {dominant_score:.2f})")
