@@ -21,6 +21,8 @@ FACIAL_PARAMS = {
     "EyeSquintRight1": {"value": 0, "alt_names": ["EyeSquintRight1"]},
     "EyeSquintLeft2": {"value": 0, "alt_names": ["EyeSquintLeft2"]},
     "EyeSquintRight2": {"value": 0, "alt_names": ["EyeSquintRight2"]},
+    "EyeSquintLeft4": {"value": 0, "alt_names": ["EyeSquintLeft4"]},
+    "EyeSquintRight4": {"value": 0, "alt_names": ["EyeSquintRight4"]},
     
     # Eyebrow parameters
     "browDownLeft": {"value": 0, "alt_names": ["BrowDownLeft", "LeftBrowDown", "BrowExpressionLeft"]},

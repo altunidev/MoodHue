@@ -13,31 +13,23 @@ from sentiment import (
 )
 
 def setup_logging(debug_level):
-    """
-    Configure logging based on debug level
-    """
-    # Configure logging levels
     log_levels = {
-        0: logging.WARNING,  # Minimal logging, only critical issues
-        1: logging.INFO,     # Standard information and key events
-        2: logging.DEBUG     # Most verbose, includes detailed tracking
+        0: logging.WARNING,
+        1: logging.INFO,
+        2: logging.DEBUG
     }
     
-    # Create a formatter with timestamp and more detailed information
     formatter = logging.Formatter(
         '%(asctime)s.%(msecs)03d | %(levelname)8s | %(message)s', 
         datefmt='%H:%M:%S'
     )
     
-    # Configure console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     
-    # Configure file handler for comprehensive logging
-    file_handler = logging.FileHandler('facial_processing.log', mode='w')
+    file_handler = logging.FileHandler('facial_processing.log', mode='w', encoding='utf-8')
     file_handler.setFormatter(formatter)
     
-    # Configure root logger
     logging.basicConfig(
         level=log_levels.get(debug_level, logging.INFO),
         handlers=[console_handler, file_handler]
@@ -46,9 +38,6 @@ def setup_logging(debug_level):
     return logging.getLogger(__name__)
 
 def process_data(queue, debug_level=1, throttle_ms=1000):
-    """
-    Enhanced facial data processing with comprehensive logging and error tracking
-    """
     # Setup logging
     logger = setup_logging(debug_level)
     logger.info(f"Starting facial parameter processor")
@@ -104,7 +93,7 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
                 facial_params[std_param_name]["value"] = value
                 matched = True
                 error_tracking['recognized_messages'] += 1
-                logger.debug(f"Direct Match: {param_name} → {std_param_name}")
+                logger.debug(f"Direct Match: {param_name} -> {std_param_name}")
             
             # Fallback matching if not directly matched
             if not matched:
