@@ -38,11 +38,15 @@ def setup_logging(debug_level):
     return logging.getLogger(__name__)
 
 def process_data(queue, debug_level=1, throttle_ms=1000):
+    """
+    Process facial data with parameter name matching and emotion detection
+    """
     # Setup logging
     logger = setup_logging(debug_level)
     logger.info(f"Starting facial parameter processor")
     logger.info(f"Debug Level: {debug_level}, Throttle: {throttle_ms}ms")
     
+    # Initialize parameters dictionary
     facial_params = FACIAL_PARAMS.copy()
     
     # Create a mapping from all possible names to standard parameter names
@@ -52,7 +56,13 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
         for alt_name in data["alt_names"]:
             param_name_mapping[alt_name] = std_name
     
-    # Enhanced error tracking
+    # Create a rolling window for smoothing output
+    window_size = 10
+    value_history = deque(maxlen=window_size)
+    for _ in range(window_size):
+        value_history.append(0)
+    
+    # Error tracking
     error_tracking = {
         'total_messages': 0,
         'recognized_messages': 0,
@@ -61,14 +71,9 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
         'unrecognized_params': {}
     }
     
-    # Rolling window for smoothing
-    window_size = 10
-    value_history = deque(maxlen=window_size)
-    for _ in range(window_size):
-        value_history.append(0)
-    
     # Performance tracking
     start_time = time.time()
+    last_update_time = time.time()
     
     while True:
         try:
@@ -83,7 +88,7 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
             parts = address.split('/')
             param_name = parts[-1]
             
-            # Matching logic with enhanced logging
+            # Matching logic
             matched = False
             std_param_name = None
             
@@ -104,7 +109,7 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
                         facial_params[std_param_name]["value"] = value
                         matched = True
                         error_tracking['recognized_messages'] += 1
-                        logger.info(f"Fuzzy Match: {param_name} → {std_param_name}")
+                        logger.info(f"Fuzzy Match: {param_name} -> {std_param_name}")
                         break
             
             # Track unrecognized parameters
@@ -114,23 +119,51 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
                     error_tracking['unrecognized_params'].get(param_name, 0) + 1
                 logger.warning(f"Unrecognized Parameter: {param_name} = {value:.4f}")
             
-            # Periodic summary and performance logging
-            if error_tracking['total_messages'] % 10 == 0:
-                current_time = time.time()
-                elapsed_time = current_time - start_time
-                
-                logger.info("Parameter Processing Summary:")
-                logger.info(f"  Total Messages: {error_tracking['total_messages']}")
-                logger.info(f"  Recognized: {error_tracking['recognized_messages']} ({error_tracking['recognized_messages']/error_tracking['total_messages']*100:.2f}%)")
-                logger.info(f"  Unrecognized: {error_tracking['unrecognized_messages']} ({error_tracking['unrecognized_messages']/error_tracking['total_messages']*100:.2f}%)")
-                logger.info(f"  Processing Rate: {error_tracking['total_messages']/elapsed_time:.2f} msg/sec")
-                
-                # Log top unrecognized parameters
-                if error_tracking['unrecognized_params']:
-                    logger.info("Top Unrecognized Parameters:")
-                    for param, count in sorted(error_tracking['unrecognized_params'].items(), key=lambda x: x[1], reverse=True)[:5]:
-                        logger.info(f"    {param}: {count} occurrences")
+            # Only process and send updates at the throttled rate
+            current_time = time.time()
+            time_diff_ms = (current_time - last_update_time) * 1000
             
+            if time_diff_ms >= throttle_ms:
+                # Get current parameter values
+                current_values = {name: data["value"] for name, data in facial_params.items()}
+                
+                # Calculate emotion scores
+                emotion_scores, dominant_emotion, dominant_score = calculate_emotion_scores(current_values)
+                
+                # Calculate hue based on emotion blend
+                hue = calculate_emotion_hue(emotion_scores)
+                
+                # Smooth the hue value
+                smoothed_hue = smooth_value(value_history, hue)
+                
+                # Log the hue value and emotion details
+                logger.info(f"Dominant Emotion: {dominant_emotion} (Score: {dominant_score:.2f})")
+                logger.info(f"Emotion Scores: {emotion_scores}")
+                logger.info(f"Calculated Hue: {smoothed_hue:.3f}")
+                
+                # Send smoothed hue value
+                send_hue_shift(smoothed_hue)
+                
+                # Update the last update time
+                last_update_time = current_time
+                
+                # Periodic summary logging
+                if error_tracking['total_messages'] % 100 == 0:
+                    current_time = time.time()
+                    elapsed_time = current_time - start_time
+                    
+                    logger.info("Parameter Processing Summary:")
+                    logger.info(f"  Total Messages: {error_tracking['total_messages']}")
+                    logger.info(f"  Recognized: {error_tracking['recognized_messages']} ({error_tracking['recognized_messages']/error_tracking['total_messages']*100:.2f}%)")
+                    logger.info(f"  Unrecognized: {error_tracking['unrecognized_messages']} ({error_tracking['unrecognized_messages']/error_tracking['total_messages']*100:.2f}%)")
+                    logger.info(f"  Processing Rate: {error_tracking['total_messages']/elapsed_time:.2f} msg/sec")
+                    
+                    # Log top unrecognized parameters
+                    if error_tracking['unrecognized_params']:
+                        logger.info("Top Unrecognized Parameters:")
+                        for param, count in sorted(error_tracking['unrecognized_params'].items(), key=lambda x: x[1], reverse=True)[:5]:
+                            logger.info(f"    {param}: {count} occurrences")
+        
         except Exception as e:
             error_tracking['processing_errors'] += 1
             logger.error(f"Processing Error: {str(e)}")
