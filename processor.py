@@ -5,7 +5,7 @@ import time
 import datetime
 import logging
 import traceback
-from facial_params_config import FACIAL_PARAMS
+from unified_expressions import FACIAL_PARAMS
 from sentiment import (
     calculate_emotion_scores, 
     calculate_emotion_hue, 
