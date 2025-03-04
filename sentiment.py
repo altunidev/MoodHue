@@ -1,15 +1,29 @@
 import numpy as np
 import logging
+from collections import deque
+
+# Common color ranges extracted to a single location
+COLOR_RANGES = [
+    (0.00, 0.02, "Red (low)"),
+    (0.19, 0.19, "Yellow"),
+    (0.28, 0.28, "Green"),
+    (0.45, 0.45, "Cyan"),
+    (0.58, 0.58, "Ocean Blue"),
+    (0.69, 0.69, "Purple"),
+    (0.75, 0.75, "Dark Pink"),
+    (0.85, 0.85, "Electric Pink"),
+    (0.94, 1.00, "Red (high)")
+]
 
 EMOTION_WEIGHTS = {
     "happy": {
         "mouthSmile": 0.6,
-        "eyeLidLeft": -0.4,  # Negative weight for open eyes
+        "eyeLidLeft": -0.4,
         "eyeLidRight": -0.4,
     },
     "sad": {
         "mouthClosed": 0.5,
-        "eyeLidLeft": 0.3,   # Positive weight for closed eyes
+        "eyeLidLeft": 0.3,
         "eyeLidRight": 0.3,
     },
     "angry": {
@@ -19,26 +33,25 @@ EMOTION_WEIGHTS = {
     },
     "surprised": {
         "jawOpen": 0.6,
-        "eyeLidLeft": -0.2,  # Open eyes
+        "eyeLidLeft": -0.2,
         "eyeLidRight": -0.2,
     }
 }
 
-# Color mapping for emotions (hue float values from 0-1)
 EMOTION_HUES = {
-    "happy": 0.19,      # Yellow
-    "sad": 0.58,        # Ocean blue
-    "angry": 0.94,      # Red (high end)
-    "surprised": 0.28,  # Green
-    "neutral": 0.02,    # Red (low end)
-    "calm": 0.45,       # Cyan
-    "excited": 0.85,    # Electric pink
-    "scared": 0.69      # Purple
+    "happy": 0.19,
+    "sad": 0.58,
+    "angry": 0.94,
+    "surprised": 0.28,
+    "neutral": 0.02,
+    "calm": 0.45,
+    "excited": 0.85,
+    "scared": 0.69
 }
 
-def map_emotion_to_color_description(hue_value):
+def map_hue_to_color_description(hue_value):
     """
-    Map a hue value to its color description.
+    Map a hue value to its closest color description.
     
     Args:
         hue_value (float): Hue value between 0 and 1
@@ -46,34 +59,25 @@ def map_emotion_to_color_description(hue_value):
     Returns:
         str: Closest color description
     """
-    color_ranges = [
-        (0.00, 0.02, "Red (low)"),
-        (0.19, 0.19, "Yellow"),
-        (0.28, 0.28, "Green"),
-        (0.45, 0.45, "Cyan"),
-        (0.58, 0.58, "Ocean Blue"),
-        (0.69, 0.69, "Purple"),
-        (0.75, 0.75, "Dark Pink"),
-        (0.85, 0.85, "Electric Pink"),
-        (0.94, 1.00, "Red (high)")
-    ]
-    
-    # Find the closest color range
-    closest_color = min(color_ranges, key=lambda x: abs(x[0] - hue_value))
+    # Find the closest color range using the global COLOR_RANGES
+    closest_color = min(COLOR_RANGES, key=lambda x: abs(x[0] - hue_value))
     return closest_color[2]
 
 def calculate_emotion_scores(current_values):
     """
-    Calculate emotion scores with enhanced parameter handling
+    Calculate emotion scores with simplified parameter handling.
+    
+    Args:
+        current_values (dict): Dictionary of current facial parameter values
+    
+    Returns:
+        tuple: Emotion scores, dominant emotion, and dominant score
     """
     logger = logging.getLogger(__name__)
     
-    # Log all current values for debugging
-    logger.debug("Current facial parameter values:")
-    for param, value in current_values.items():
-        logger.debug(f"  {param}: {value}")
+    # Simplified logging of input values
+    logger.debug("Current facial parameter values: %s", current_values)
     
-    # Calculate emotion scores
     emotion_scores = {}
     detailed_scores = {}
     
@@ -82,25 +86,19 @@ def calculate_emotion_scores(current_values):
         emotion_breakdown = {}
         
         for param, weight in weights.items():
-            # Try direct match, then try case-insensitive match
-            param_value = current_values.get(param, 
-                next((current_values.get(k, 0) for k in current_values.keys() if k.lower() == param.lower()), 0)
-            )
+            # Simplified parameter lookup (case-sensitive)
+            param_value = current_values.get(param, 0)
             
             # Normalize input values
             param_value = max(0, min(1, param_value))
             
-            # Calculate contribution with special handling for negative weights
-            if weight > 0:
-                param_contribution = param_value * weight
-            else:
-                # For negative weights, invert the value
-                param_contribution = (1 - param_value) * abs(weight)
+            # Calculate contribution
+            param_contribution = (param_value if weight > 0 else (1 - param_value)) * abs(weight)
             
             emotion_breakdown[param] = param_contribution
             score += param_contribution
         
-        # Clip total score
+        # Clip and store emotion scores
         emotion_scores[emotion] = max(0, min(1, score))
         detailed_scores[emotion] = emotion_breakdown
     
@@ -116,19 +114,19 @@ def calculate_emotion_scores(current_values):
     dominant_emotion = max(emotion_scores, key=emotion_scores.get)
     dominant_score = emotion_scores[dominant_emotion]
     
-    # Extensive logging for debugging
-    logger.info("Detailed Emotion Score Breakdown:")
+    # Logging of detailed emotion breakdown
+    logger.info("Emotion Score Breakdown:")
     for emotion, score in emotion_scores.items():
-        logger.info(f"  {emotion}: {score:.4f}")
+        logger.info("  %s: %.4f", emotion, score)
         if emotion in detailed_scores:
             for param, contrib in detailed_scores[emotion].items():
-                logger.info(f"    {param}: {contrib:.4f}")
+                logger.info("    %s: %.4f", param, contrib)
     
     return emotion_scores, dominant_emotion, dominant_score
 
 def calculate_emotion_hue(emotion_scores):
     """
-    Calculate hue with precise emotion blending and logging
+    Calculate hue with emotion blending.
     
     Args:
         emotion_scores (dict): Dictionary of emotion scores
@@ -138,11 +136,9 @@ def calculate_emotion_hue(emotion_scores):
     """
     logger = logging.getLogger(__name__)
     
-    # Calculate hue with precise blending
     hue = 0
     total_weighted_score = 0
     
-    # Log individual emotion contributions
     logger.info("Hue Calculation Breakdown:")
     
     for emotion, score in emotion_scores.items():
@@ -151,47 +147,21 @@ def calculate_emotion_hue(emotion_scores):
             weighted_score = score ** 2
             emotion_hue = EMOTION_HUES[emotion]
             
-            logger.info(f"  {emotion}: score={score:.4f}, hue={emotion_hue:.4f}, weighted_score={weighted_score:.4f}")
+            logger.info("  %s: score=%.4f, hue=%.4f, weighted_score=%.4f", 
+                        emotion, score, emotion_hue, weighted_score)
             
             hue += emotion_hue * weighted_score
             total_weighted_score += weighted_score
     
     # Normalize hue
-    if total_weighted_score > 0:
-        hue = hue / total_weighted_score
+    hue = hue / total_weighted_score if total_weighted_score > 0 else 0
     
     # Ensure hue is within 0-1 range
     hue = max(0, min(1, hue))
     
-    logger.info(f"Final Calculated Hue: {hue:.4f}")
+    logger.info("Final Calculated Hue: %.4f", hue)
     
     return hue
-
-def map_hue_to_color_description(hue_value):
-    """
-    Map a hue value to its closest color description
-    
-    Args:
-        hue_value (float): Hue value between 0 and 1
-    
-    Returns:
-        str: Closest color description
-    """
-    color_ranges = [
-        (0.00, 0.02, "Red (low)"),
-        (0.19, 0.19, "Yellow"),
-        (0.28, 0.28, "Green"),
-        (0.45, 0.45, "Cyan"),
-        (0.58, 0.58, "Ocean Blue"),
-        (0.69, 0.69, "Purple"),
-        (0.75, 0.75, "Dark Pink"),
-        (0.85, 0.85, "Electric Pink"),
-        (0.94, 1.00, "Red (high)")
-    ]
-    
-    # Find the closest color range
-    closest_color = min(color_ranges, key=lambda x: abs(x[0] - hue_value))
-    return closest_color[2]
 
 def smooth_value(value_history, new_value, smoothing_method='simple_average'):
     """
@@ -211,7 +181,7 @@ def smooth_value(value_history, new_value, smoothing_method='simple_average'):
         return sum(value_history) / len(value_history)
     
     elif smoothing_method == 'weighted_average':
-        # Example of a weighted average where recent values have more impact
+        # Weighted average where recent values have more impact
         weights = [i+1 for i in range(len(value_history))]
         weighted_sum = sum(val * weight for val, weight in zip(value_history, weights))
         return weighted_sum / sum(weights)
