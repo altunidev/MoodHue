@@ -65,7 +65,7 @@ def map_hue_to_color_description(hue_value):
 
 def calculate_emotion_scores(current_values):
     """
-    Calculate emotion scores with simplified parameter handling.
+    Enhanced emotion score calculation with improved neutral handling.
     
     Args:
         current_values (dict): Dictionary of current facial parameter values
@@ -86,8 +86,12 @@ def calculate_emotion_scores(current_values):
         emotion_breakdown = {}
         
         for param, weight in weights.items():
-            # Simplified parameter lookup (case-sensitive)
-            param_value = current_values.get(param, 0)
+            # More aggressive parameter matching
+            param_value = 0
+            for key in current_values.keys():
+                if param.lower() in key.lower():
+                    param_value = current_values[key]
+                    break
             
             # Normalize input values
             param_value = max(0, min(1, param_value))
@@ -102,13 +106,14 @@ def calculate_emotion_scores(current_values):
         emotion_scores[emotion] = max(0, min(1, score))
         detailed_scores[emotion] = emotion_breakdown
     
-    # Normalize scores
+    # Normalize scores with a dynamic neutral calculation
     total_score = sum(emotion_scores.values())
     if total_score > 0:
         emotion_scores = {k: v / total_score for k, v in emotion_scores.items()}
-    
-    # Calculate neutral score
-    emotion_scores["neutral"] = max(0, 1 - sum(emotion_scores.values()))
+        
+        # Dynamic neutral calculation based on emotional intensity
+        neutral_factor = 1 - sum(emotion_scores.values())
+        emotion_scores["neutral"] = max(0, neutral_factor)
     
     # Find the dominant emotion
     dominant_emotion = max(emotion_scores, key=emotion_scores.get)
@@ -126,7 +131,7 @@ def calculate_emotion_scores(current_values):
 
 def calculate_emotion_hue(emotion_scores):
     """
-    Calculate hue with emotion blending.
+    Calculate hue with improved emotion representation and dynamic range.
     
     Args:
         emotion_scores (dict): Dictionary of emotion scores
@@ -136,32 +141,50 @@ def calculate_emotion_hue(emotion_scores):
     """
     logger = logging.getLogger(__name__)
     
-    hue = 0
-    total_weighted_score = 0
+    # Filter out neutral and extract top emotions
+    emotion_weights = {k: v for k, v in emotion_scores.items() 
+                       if k != 'neutral' and v > 0}
     
-    logger.info("Hue Calculation Breakdown:")
+    # If no significant emotions, return neutral hue
+    if not emotion_weights:
+        return EMOTION_HUES['neutral']
     
-    for emotion, score in emotion_scores.items():
-        if score > 0 and emotion in EMOTION_HUES:
-            # Exponential weighting to emphasize dominant emotions
-            weighted_score = score ** 2
-            emotion_hue = EMOTION_HUES[emotion]
-            
-            logger.info("  %s: score=%.4f, hue=%.4f, weighted_score=%.4f", 
-                        emotion, score, emotion_hue, weighted_score)
-            
-            hue += emotion_hue * weighted_score
-            total_weighted_score += weighted_score
+    # Sort emotions by score in descending order
+    sorted_emotions = sorted(emotion_weights.items(), key=lambda x: x[1], reverse=True)
     
-    # Normalize hue
-    hue = hue / total_weighted_score if total_weighted_score > 0 else 0
+    logger.info("Top Emotions Breakdown:")
+    
+    # Primary and secondary emotion calculation
+    primary_emotion, primary_score = sorted_emotions[0]
+    secondary_emotion = sorted_emotions[1][0] if len(sorted_emotions) > 1 else primary_emotion
+    
+    # Calculate blended hue with bias towards extreme emotions
+    primary_hue = EMOTION_HUES[primary_emotion]
+    secondary_hue = EMOTION_HUES[secondary_emotion]
+    
+    # Exponential scoring to emphasize dominant emotions
+    primary_weight = primary_score ** 3  # Cubic to really emphasize the top emotion
+    secondary_weight = (1 - primary_score) ** 2
+    
+    # Blend hues with weighted average
+    blended_hue = (primary_hue * primary_weight + secondary_hue * secondary_weight) / (primary_weight + secondary_weight)
+    
+    # Adjust for extreme emotions
+    if primary_score > 0.7:  # If dominant emotion is very strong
+        if primary_emotion in ['angry', 'excited']:
+            blended_hue = EMOTION_HUES[primary_emotion]
+        elif primary_emotion in ['surprised', 'happy']:
+            blended_hue = EMOTION_HUES[primary_emotion]
     
     # Ensure hue is within 0-1 range
-    hue = max(0, min(1, hue))
+    blended_hue = max(0, min(1, blended_hue))
     
-    logger.info("Final Calculated Hue: %.4f", hue)
+    logger.info(f"Primary Emotion: {primary_emotion} (score: {primary_score:.4f})")
+    logger.info(f"Secondary Emotion: {secondary_emotion}")
+    logger.info(f"Calculated Hue: {blended_hue:.4f}")
+    logger.info(f"Color Description: {map_hue_to_color_description(blended_hue)}")
     
-    return hue
+    return blended_hue
 
 def smooth_value(value_history, new_value, smoothing_method='simple_average'):
     """
