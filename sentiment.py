@@ -1,40 +1,30 @@
 import numpy as np
 import logging
 
-# Emotion weight mappings
 EMOTION_WEIGHTS = {
     "happy": {
-        "mouthSmile": 1.0,
-        "eyeOpenLeft": 0.4,
-        "eyeOpenRight": 0.4,
-        "browUpLeft": 0.3,
-        "browUpRight": 0.3,
+        "mouthSmile": 0.6,
+        "eyeLidLeft": -0.4,  # Negative weight for open eyes
+        "eyeLidRight": -0.4,
     },
     "sad": {
-        "mouthFrown": 1.0,
-        "browDownLeft": 0.5,
-        "browDownRight": 0.5,
-        "eyeSquintLeft": 0.3,
-        "eyeSquintRight": 0.3,
+        "mouthClosed": 0.5,
+        "eyeLidLeft": 0.3,   # Positive weight for closed eyes
+        "eyeLidRight": 0.3,
     },
     "angry": {
-        "browDownLeft": 0.8,
-        "browDownRight": 0.8,
-        "noseSneerLeft": 0.5,
-        "noseSneerRight": 0.5,
-        "mouthFrown": 0.4,
+        "EyeSquintLeft1": 0.4,
+        "EyeSquintRight1": 0.4,
+        "mouthPucker": 0.3,
     },
     "surprised": {
-        "eyeOpenLeft": 0.6,
-        "eyeOpenRight": 0.6,
-        "browUpLeft": 0.4,
-        "browUpRight": 0.4,
-        "mouthOpen": 0.5,
-        "jawOpen": 0.5,
+        "jawOpen": 0.6,
+        "eyeLidLeft": -0.2,  # Open eyes
+        "eyeLidRight": -0.2,
     }
 }
 
-# Color mapping for emotions (hue values from 0-1)
+# Color mapping for emotions (hue float values from 0-1)
 EMOTION_HUES = {
     "happy": 0.19,      # Yellow
     "sad": 0.58,        # Ocean blue
@@ -74,13 +64,7 @@ def map_emotion_to_color_description(hue_value):
 
 def calculate_emotion_scores(current_values):
     """
-    Calculate emotion scores with enhanced debugging and safeguards.
-    
-    Args:
-        current_values (dict): Dictionary of current facial parameter values
-    
-    Returns:
-        tuple: (emotion_scores, dominant_emotion, dominant_score)
+    Calculate emotion scores with enhanced parameter handling
     """
     logger = logging.getLogger(__name__)
     
@@ -98,13 +82,21 @@ def calculate_emotion_scores(current_values):
         emotion_breakdown = {}
         
         for param, weight in weights.items():
-            param_value = current_values.get(param, 0)
+            # Try direct match, then try case-insensitive match
+            param_value = current_values.get(param, 
+                next((current_values.get(k, 0) for k in current_values.keys() if k.lower() == param.lower()), 0)
+            )
             
-            # Clip input values to 0-1 range
+            # Normalize input values
             param_value = max(0, min(1, param_value))
             
-            # Calculate individual parameter contribution
-            param_contribution = param_value * weight
+            # Calculate contribution with special handling for negative weights
+            if weight > 0:
+                param_contribution = param_value * weight
+            else:
+                # For negative weights, invert the value
+                param_contribution = (1 - param_value) * abs(weight)
+            
             emotion_breakdown[param] = param_contribution
             score += param_contribution
         
