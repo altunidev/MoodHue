@@ -1,4 +1,8 @@
 FACIAL_PARAMS = {
+    # Base VRC Eye params
+    "eyesClosedAmount": {"value": 0, "alt_names": ["EyesClosedAmount", "EyeClosed", "EyeClosureAmount"]},
+    "centerPitchYaw": {"value": 0, "alt_names": ["CenterPitchYaw", "EyePitchYaw", "EyeTracking"]},
+
     # Eye params
     "eyeBlinkLeft": {"value": 0, "alt_names": ["EyeBlinkLeft", "LeftEyeBlink", "LeftEyeLid"]},
     "eyeBlinkRight": {"value": 0, "alt_names": ["EyeBlinkRight", "RightEyeBlink", "RightEyeLid"]},
