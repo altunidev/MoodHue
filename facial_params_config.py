@@ -4,26 +4,30 @@ FACIAL_PARAMS = {
     "centerPitchYaw": {"value": 0, "alt_names": ["CenterPitchYaw", "EyePitchYaw", "EyeTracking"]},
 
     # Eye params
-    "eyeBlinkLeft": {"value": 0, "alt_names": ["EyeBlinkLeft", "LeftEyeBlink", "LeftEyeLid"]},
-    "eyeBlinkRight": {"value": 0, "alt_names": ["EyeBlinkRight", "RightEyeBlink", "RightEyeLid"]},
-    "eyeOpenLeft": {"value": 0, "alt_names": ["EyeOpenLeft", "LeftEyeOpen", "LeftEyeOpening"]},
-    "eyeOpenRight": {"value": 0, "alt_names": ["EyeOpenRight", "RightEyeOpen", "RightEyeOpening"]},
-    "eyeSquintLeft": {"value": 0, "alt_names": ["EyeSquintLeft", "LeftEyeSquint"]},
-    "eyeSquintRight": {"value": 0, "alt_names": ["EyeSquintRight", "RightEyeSquint"]},
+    "eyeX": {"value": 0, "alt_names": ["EyeX"]},                #  0 -> 1
     "eyeY": {"value": 0, "alt_names": ["EyeY"]},
-    "eyeLeftX": {"value": 0, "alt_names": ["EyeLeftX"]},
+    "eyeLeftX": {"value": 0, "alt_names": ["EyeLeftX"]},        # -1 -> 1
+    "eyeLeftY": {"value": 0, "alt_names": ["EyeLeftY"]},
+    "eyeSquint": {"value": 0, "alt_names": ["EyeSquint"]},
+    "eyeLidLeft": {"value": 0, "alt_names": ["EyeLidLeft"]},    # 0 -> 0.75 close; 0.75 -> 1 widen
+    "eyeBlinkLeft": {"value": 0, "alt_names": ["EyeBlinkLeft", "LeftEyeBlink", "LeftEyeLid"]},  # 
+    "eyeOpenLeft": {"value": 0, "alt_names": ["EyeOpenLeft", "LeftEyeOpen", "LeftEyeOpening"]}, # 
+    "eyeSquintLeft": {"value": 0, "alt_names": ["EyeSquintLeft", "LeftEyeSquint"]},             # 
     "eyeRightX": {"value": 0, "alt_names": ["EyeRightX"]},
-    "eyeLidLeft": {"value": 0, "alt_names": ["EyeLidLeft"]},
+    "eyeRightY": {"value": 0, "alt_names": ["EyeRightY"]},
     "eyeLidRight": {"value": 0, "alt_names": ["EyeLidRight"]},
+    "eyeBlinkRight": {"value": 0, "alt_names": ["EyeBlinkRight", "RightEyeBlink", "RightEyeLid"]},
+    "eyeOpenRight": {"value": 0, "alt_names": ["EyeOpenRight", "RightEyeOpen", "RightEyeOpening"]},
+    "eyeSquintRight": {"value": 0, "alt_names": ["EyeSquintRight", "RightEyeSquint"]},
 
     # Additional Eye Squint parameters
     "EyeSquintLeft1": {"value": 0, "alt_names": ["EyeSquintLeft1"]},
-    "EyeSquintRight1": {"value": 0, "alt_names": ["EyeSquintRight1"]},
     "EyeSquintLeft2": {"value": 0, "alt_names": ["EyeSquintLeft2"]},
-    "EyeSquintRight2": {"value": 0, "alt_names": ["EyeSquintRight2"]},
     "EyeSquintLeft3": {"value": 0, "alt_names": ["EyeSquintLeft3"]},
-    "EyeSquintRight3": {"value": 0, "alt_names": ["EyeSquintRight3"]},
     "EyeSquintLeft4": {"value": 0, "alt_names": ["EyeSquintLeft4"]},
+    "EyeSquintRight1": {"value": 0, "alt_names": ["EyeSquintRight1"]},
+    "EyeSquintRight2": {"value": 0, "alt_names": ["EyeSquintRight2"]},
+    "EyeSquintRight3": {"value": 0, "alt_names": ["EyeSquintRight3"]},
     "EyeSquintRight4": {"value": 0, "alt_names": ["EyeSquintRight4"]},
     
     # Eyebrow parameters
