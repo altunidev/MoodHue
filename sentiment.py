@@ -128,7 +128,7 @@ def calculate_emotion_scores(current_values):
 
 def calculate_emotion_hue(emotion_scores):
     """
-    Calculate hue based on emotion blend.
+    Calculate hue with precise emotion blending and logging
     
     Args:
         emotion_scores (dict): Dictionary of emotion scores
@@ -136,18 +136,62 @@ def calculate_emotion_hue(emotion_scores):
     Returns:
         float: Calculated hue value
     """
-    # Calculate hue based on emotion blend
-    hue = 0
-    for emotion, score in emotion_scores.items():
-        if score > 0:
-            hue += EMOTION_HUES[emotion] * score
+    logger = logging.getLogger(__name__)
     
-    # Normalize in case scores add up to more than 1
-    total_score = sum(emotion_scores.values())
-    if total_score > 0:
-        hue = hue / total_score
+    # Calculate hue with precise blending
+    hue = 0
+    total_weighted_score = 0
+    
+    # Log individual emotion contributions
+    logger.info("Hue Calculation Breakdown:")
+    
+    for emotion, score in emotion_scores.items():
+        if score > 0 and emotion in EMOTION_HUES:
+            # Exponential weighting to emphasize dominant emotions
+            weighted_score = score ** 2
+            emotion_hue = EMOTION_HUES[emotion]
+            
+            logger.info(f"  {emotion}: score={score:.4f}, hue={emotion_hue:.4f}, weighted_score={weighted_score:.4f}")
+            
+            hue += emotion_hue * weighted_score
+            total_weighted_score += weighted_score
+    
+    # Normalize hue
+    if total_weighted_score > 0:
+        hue = hue / total_weighted_score
+    
+    # Ensure hue is within 0-1 range
+    hue = max(0, min(1, hue))
+    
+    logger.info(f"Final Calculated Hue: {hue:.4f}")
     
     return hue
+
+def map_hue_to_color_description(hue_value):
+    """
+    Map a hue value to its closest color description
+    
+    Args:
+        hue_value (float): Hue value between 0 and 1
+    
+    Returns:
+        str: Closest color description
+    """
+    color_ranges = [
+        (0.00, 0.02, "Red (low)"),
+        (0.19, 0.19, "Yellow"),
+        (0.28, 0.28, "Green"),
+        (0.45, 0.45, "Cyan"),
+        (0.58, 0.58, "Ocean Blue"),
+        (0.69, 0.69, "Purple"),
+        (0.75, 0.75, "Dark Pink"),
+        (0.85, 0.85, "Electric Pink"),
+        (0.94, 1.00, "Red (high)")
+    ]
+    
+    # Find the closest color range
+    closest_color = min(color_ranges, key=lambda x: abs(x[0] - hue_value))
+    return closest_color[2]
 
 def smooth_value(value_history, new_value, smoothing_method='simple_average'):
     """
