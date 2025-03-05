@@ -10,18 +10,7 @@ def setup_logging(
     log_format: Optional[str] = None,
     date_format: Optional[str] = None
 ) -> logging.Logger:
-    """
-    Centralized logging setup with flexible configuration
     
-    Args:
-        debug_level: Logging verbosity (0-2)
-        log_file: Optional file to save logs
-        log_format: Custom log message format
-        date_format: Custom date format for logs
-    
-    Returns:
-        Configured logger instance
-    """
     # Log level mapping
     log_levels = {
         0: logging.WARNING,
@@ -61,30 +50,27 @@ def setup_logging(
     
     return logger
 
-def validate_config(config: dict) -> bool:
+def validate_config(config: dict, required_keys: list) -> bool:
     """
-    Validate configuration dictionary
+    Validate that all required keys exist in the configuration.
     
     Args:
-        config: Configuration dictionary to validate
-    
+        config: The configuration dictionary.
+        required_keys: A list of keys that must be present in the configuration.
+        
     Returns:
-        Boolean indicating if configuration is valid
+        Boolean indicating whether all required keys are present.
     """
-    # Add specific validation logic for your configuration
-    required_keys = ['ip', 'port', 'debug_level']
-    return all(key in config for key in required_keys)
+    missing_keys = [key for key in required_keys if key not in config]
+    if missing_keys:
+        print(f"Missing keys: {', '.join(missing_keys)}")
+        return False
+    return True
 
 def get_default_config():
-    """
-    Generate a default configuration dictionary
-    
-    Returns:
-        Dictionary with default configuration values
-    """
     return {
-        'ip': OSC_CONFIG['IP'],  # Changed from 'DEFAULT_IP'
-        'port': OSC_CONFIG['LISTEN_PORT'],  # Changed from 'DEFAULT_LISTEN_PORT'
-        'debug_level': LOGGING_CONFIG['DEFAULT_DEBUG_LEVEL'],
+        'ip': OSC_CONFIG['IP'],
+        'port': OSC_CONFIG['LISTEN_PORT'],
+        'debug_level': LOGGING_CONFIG['DEBUG_LEVEL'],
         'throttle_ms': LOGGING_CONFIG['DEFAULT_THROTTLE_MS']
     }

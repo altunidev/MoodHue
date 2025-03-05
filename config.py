@@ -7,8 +7,15 @@ OSC_CONFIG = {
     'SEND_PORT': 9000,
 }
 
+'''
+DEBUG_LEVEL
+    0: logging.WARNING,
+    1: logging.INFO,
+    2: logging.DEBUG
+'''
+
 LOGGING_CONFIG = {
-    'DEFAULT_DEBUG_LEVEL': 1,
+    'DEBUG_LEVEL': 1,
     'DEFAULT_THROTTLE_MS': 1000,
     'LOG_FORMAT': '%(asctime)s.%(msecs)03d | %(levelname)8s | %(message)s',
     'LOG_DATEFORMAT': '%H:%M:%S'
@@ -16,6 +23,12 @@ LOGGING_CONFIG = {
 
 # Centralize all global constants from sentiment.py and processor.py
 EMOTION_WEIGHTS: Dict[str, Dict[str, float]] = {
+    "neutral": {
+        "default": 0.0,
+        "mouthClosed": 0.2,  # Slightly neutral mouth position
+        "eyeLidLeft": 0.1,   # Neutral eye state
+        "eyeLidRight": 0.1
+    },
     "happy": {
         "mouthSmile": 1.0,      # Strong positive for smiling
         "eyeLidLeft": -0.3,     # Slight negative for droopy eyes

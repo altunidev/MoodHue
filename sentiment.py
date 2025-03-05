@@ -1,57 +1,7 @@
 import numpy as np
 import logging
-from collections import deque
+#from collections import deque
 from config import EMOTION_HUES, EMOTION_WEIGHTS, COLOR_RANGES
-
-def find_matching_parameter(target_param, current_values, logger=None):
-    """
-    Find a matching parameter key with flexible matching.
-    
-    Args:
-        target_param (str): The parameter to find
-        current_values (dict): Dictionary of current parameter values
-        logger (logging.Logger, optional): Logger for warnings
-    
-    Returns:
-        float: Matched parameter value or 0
-    """
-    # Default to root logger if no logger provided
-    if logger is None:
-        logger = logging.getLogger(__name__)
-    
-    # Direct exact match
-    if target_param in current_values:
-        return current_values[target_param]
-    
-    # Case-insensitive match
-    case_insensitive = {k.lower(): k for k in current_values.keys()}
-    if target_param.lower() in case_insensitive:
-        return current_values[case_insensitive[target_param.lower()]]
-    
-    # Partial match with more sophisticated logic
-    matches = [
-        (k, v) for k, v in current_values.items() 
-        if target_param.lower() in k.lower() or k.lower() in target_param.lower()
-    ]
-    
-    if matches:
-        # Prefer exact word matches over partial
-        exact_word_matches = [
-            (k, v) for k, v in matches 
-            if any(word.lower() == target_param.lower() for word in k.split())
-        ]
-        
-        if exact_word_matches:
-            matches = exact_word_matches
-        
-        # If multiple matches, log all and use the first
-        if len(matches) > 1:
-            logger.warning(f"Multiple matches for {target_param}: {matches}")
-        
-        return matches[0][1]
-    
-    return 0  # Default to 0 if no match
-
 def calculate_emotion_scores(current_values):
     """
     Calculate emotion scores with advanced parameter matching and scoring.
@@ -64,29 +14,64 @@ def calculate_emotion_scores(current_values):
     """
     logger = logging.getLogger(__name__)
     
-    # Log input values
-    logger.debug("Input Facial Parameters:")
+    # EXTENSIVE LOGGING
+    logger.setLevel(logging.DEBUG)
+    
+    logger.debug("Raw Input Facial Parameters:")
     for key, value in current_values.items():
-        logger.debug(f"  {key}: {value}")
+        logger.debug(f"  Raw Key: {key}, Raw Value: {value}")
+    
+    # CASE-INSENSITIVE PARAMETER CONVERSION
+    normalized_values = {
+        k.lower().replace(' ', ''): (v, k) 
+        for k, v in current_values.items()
+    }
+    
+    logger.debug("Normalized Input Parameters:")
+    for key, (value, original_key) in normalized_values.items():
+        logger.debug(f"  Normalized Key: {key}, Original Key: {original_key}, Value: {value}")
     
     emotion_scores = {}
     detailed_scores = {}
     
     for emotion, weights in EMOTION_WEIGHTS.items():
+        if emotion == "neutral":
+            continue  # Skip explicit neutral computation
+        
         score = 0
         emotion_breakdown = {}
         
-        logger.debug(f"\nProcessing {emotion} emotion:")
+        logger.debug(f"\n=== Processing {emotion} emotion ===")
         
         for param, weight in weights.items():
-            # Flexible parameter matching
-            param_value = find_matching_parameter(param, current_values, logger)
+            # MORE FLEXIBLE PARAMETER MATCHING
+            normalized_param = param.lower().replace(' ', '')
             
-            # Safe type conversion
+            # Try multiple matching strategies
+            matching_strategies = [
+                normalized_param,  # Exact normalized match
+                normalized_param.replace('1', ''),  # Remove numeric suffixes
+                normalized_param.replace('left', '').replace('right', '')  # Remove directional indicators
+            ]
+            
+            matched_value = None
+            matched_strategy = None
+            
+            for strategy in matching_strategies:
+                if strategy in normalized_values:
+                    matched_value = normalized_values[strategy][0]
+                    matched_strategy = strategy
+                    break
+            
+            # Safe type conversion and parameter matching logging
             try:
-                param_value = float(param_value)
+                param_value = float(matched_value) if matched_value is not None else 0
+                logger.debug(f"  Param: {param}")
+                logger.debug(f"    Weight: {weight}")
+                logger.debug(f"    Matched Strategy: {matched_strategy}")
+                logger.debug(f"    Matched Value: {param_value}")
             except (TypeError, ValueError):
-                logger.warning(f"Invalid value for {param}: {param_value}. Using 0.")
+                logger.warning(f"Invalid value for {param}: {matched_value}. Using 0.")
                 param_value = 0
             
             # Normalize input values
@@ -98,7 +83,7 @@ def calculate_emotion_scores(current_values):
                 else (1 - param_value) * abs(weight)
             )
             
-            logger.debug(f"  {param}: value={param_value}, weight={weight}, contribution={param_contribution}")
+            logger.debug(f"    Contribution: {param_contribution}")
             
             emotion_breakdown[param] = param_contribution
             score += param_contribution
@@ -107,21 +92,32 @@ def calculate_emotion_scores(current_values):
         emotion_scores[emotion] = max(0, min(1, score))
         detailed_scores[emotion] = emotion_breakdown
     
-    # Advanced score normalization
+    # More robust score normalization
     total_score = sum(emotion_scores.values())
+    logger.debug(f"\nBefore Normalization Scores: {emotion_scores}")
+    logger.debug(f"Total Score: {total_score}")
+    
     if total_score > 0:
+        # Scale all emotions
         emotion_scores = {k: v / total_score for k, v in emotion_scores.items()}
     
-    # Dynamic neutral calculation with intensity-based adjustment
+    # More sophisticated neutral calculation
     neutral_factor = max(0, 1 - sum(emotion_scores.values()))
-    emotion_scores["neutral"] = neutral_factor
+    
+    # Only add neutral if it's significantly present
+    if neutral_factor > 0.1:
+        emotion_scores["neutral"] = neutral_factor
     
     # Dominant emotion detection
-    dominant_emotion = max(emotion_scores, key=emotion_scores.get)
-    dominant_score = emotion_scores[dominant_emotion]
+    if emotion_scores:
+        dominant_emotion = max(emotion_scores, key=emotion_scores.get)
+        dominant_score = emotion_scores[dominant_emotion]
+    else:
+        dominant_emotion = "neutral"
+        dominant_score = 1.0
     
     # Comprehensive result logging
-    logger.info("\nFinal Emotion Scores:")
+    logger.info("\n=== Final Emotion Scores ===")
     for emotion, score in emotion_scores.items():
         logger.info(f"  {emotion}: {score:.4f}")
         if emotion in detailed_scores:
@@ -129,6 +125,32 @@ def calculate_emotion_scores(current_values):
                 logger.info(f"    {param}: {contrib:.4f}")
     
     return emotion_scores, dominant_emotion, dominant_score
+
+# Recommended function for precise parameter matching
+def find_matching_parameter(target_param, current_values, logger=None):
+    """
+    Enhanced parameter matching with multiple strategies.
+    """
+    normalized_target = target_param.lower().replace(' ', '')
+    
+    # Normalize input dictionary
+    normalized_dict = {
+        k.lower().replace(' ', ''): v 
+        for k, v in current_values.items()
+    }
+    
+    # Matching strategies
+    strategies = [
+        normalized_target,  # Exact match
+        normalized_target.replace('1', ''),  # Remove numeric suffixes
+        normalized_target.replace('left', '').replace('right', '')  # Remove directional indicators
+    ]
+    
+    for strategy in strategies:
+        if strategy in normalized_dict:
+            return normalized_dict[strategy]
+    
+    return 0  # Default if no match found
 
 
 def map_hue_to_color_description(hue_value):

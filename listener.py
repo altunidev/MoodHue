@@ -2,6 +2,8 @@ from pythonosc import dispatcher, osc_server
 from multiprocessing import Queue
 import logging
 from typing import Any
+from config import LOGGING_CONFIG
+from utils import setup_logging
 
 def receive_osc(queue: Queue, logger: logging.Logger, address: str, *args: Any) -> None:
     """
@@ -19,7 +21,7 @@ def receive_osc(queue: Queue, logger: logging.Logger, address: str, *args: Any) 
         
         if value is not None:
             # Log received message at debug level
-            logger.debug(f"Received OSC: {address} = {value}")
+            logger = setup_logging(debug_level=LOGGING_CONFIG['DEBUG_LEVEL'])
             queue.put((address, value))
         else:
             logger.warning(f"Received OSC message with no value: {address}")

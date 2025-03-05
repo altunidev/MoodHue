@@ -142,17 +142,17 @@ FACIAL_PARAMS = {
 
 FACIAL_PARAMS = {
     # Eye params
-    "eyeX": {"value": 0, "alt_names": ["EyeX"]},                # -1 -> 0 look left; 0 -> 1 look right
+    #"eyeX": {"value": 0, "alt_names": ["EyeX"]},                # -1 -> 0 look left; 0 -> 1 look right
     "eyeY": {"value": 0, "alt_names": ["EyeY"]},                # -1 -> 0 look down; 0 -> 1 look up
     
     "eyeLeftX": {"value": 0, "alt_names": ["EyeLeftX"]},
-    "eyeLeftY": {"value": 0, "alt_names": ["EyeLeftY"]},
+    #"eyeLeftY": {"value": 0, "alt_names": ["EyeLeftY"]},
     "eyeBlinkLeft": {"value": 0, "alt_names": ["EyeBlinkLeft", "LeftEyeBlink", "LeftEyeLid"]},
     "eyeOpenLeft": {"value": 0, "alt_names": ["EyeOpenLeft", "LeftEyeOpen", "LeftEyeOpening"]},
     "eyeSquintLeft": {"value": 0, "alt_names": ["EyeSquintLeft", "LeftEyeSquint"]},
     
     "eyeRightX": {"value": 0, "alt_names": ["EyeRightX"]},
-    "eyeRightY": {"value": 0, "alt_names": ["EyeRightY"]},
+    #"eyeRightY": {"value": 0, "alt_names": ["EyeRightY"]},
     "eyeBlinkRight": {"value": 0, "alt_names": ["EyeBlinkRight", "RightEyeBlink", "RightEyeLid"]},
     "eyeOpenRight": {"value": 0, "alt_names": ["EyeOpenRight", "RightEyeOpen", "RightEyeOpening"]},
     "eyeSquintRight": {"value": 0, "alt_names": ["EyeSquintRight", "RightEyeSquint"]},
