@@ -8,7 +8,7 @@ IP = "127.0.0.1"
 LISTEN_PORT = 9002
 SEND_PORT = 9000
 DEBUG_LEVEL = 1
-DEBUG_THROTTLE = 500
+DEBUG_THROTTLE = 1000
 
 
 if __name__ == "__main__":

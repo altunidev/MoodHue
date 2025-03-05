@@ -1,4 +1,4 @@
-from sender import send_hue_shift
+from sender import send_hue_shift, send_message
 import math
 from collections import deque
 import time
@@ -38,15 +38,11 @@ def setup_logging(debug_level):
     return logging.getLogger(__name__)
 
 def process_data(queue, debug_level=1, throttle_ms=1000):
-    """
-    Process facial data with parameter name matching and emotion detection
-    """
     # Setup logging
     logger = setup_logging(debug_level)
     logger.info(f"Starting facial parameter processor")
     logger.info(f"Debug Level: {debug_level}, Throttle: {throttle_ms}ms")
     
-    # Initialize parameters dictionary
     facial_params = FACIAL_PARAMS.copy()
     
     # Create a mapping from all possible names to standard parameter names
@@ -80,7 +76,7 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
             # Retrieve OSC message
             address, value = queue.get(timeout=5)
             error_tracking['total_messages'] += 1
-            
+
             # Log incoming message at debug level
             logger.debug(f"Received: {address} = {value:.4f}")
             
@@ -143,6 +139,7 @@ def process_data(queue, debug_level=1, throttle_ms=1000):
                 
                 # Send smoothed hue value
                 send_hue_shift(smoothed_hue)
+                #send_message(address, value)   # really buggy, slow, and glitchy.
                 
                 # Update the last update time
                 last_update_time = current_time
