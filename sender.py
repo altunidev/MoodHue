@@ -1,21 +1,40 @@
 from pythonosc.udp_client import SimpleUDPClient
+import logging
+from typing import Optional
 
-# Debugging vars for unit testing
-ip = "127.0.0.1"
-port = 9000             # VRChat's OSC receiver port
+class OSCSender:
+    def __init__(
+        self, 
+        ip: str = "127.0.0.1", 
+        port: int = 9000, 
+        logger: Optional[logging.Logger] = None
+    ):
+        self.client = SimpleUDPClient(ip, port)
+        self.logger = logger or logging.getLogger(__name__)
+    
+    def send_message(
+        self, 
+        address: str = "/avatar/parameters/HueShift", 
+        value: float = 0.0
+    ) -> bool:
+        """
+        Send OSC message with optional default for hue shift
+        
+        Args:
+            address: OSC message address (defaults to hue shift)
+            value: Message value
+        
+        Returns:
+            Boolean indicating successful message send
+        """
+        try:
+            self.client.send_message(address, value)
+            self.logger.debug(f"Sent: \"{address}\" : {value}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error sending message to {address}: {e}")
+            return False
 
-client = SimpleUDPClient(ip, port)
-
-def send_message(address, value):
-    try:
-        client.send_message(address, value)
-        print(f"Sent: \"{address}\" : {value}")  # Debugging statement
-    except Exception as e:
-        print(f"Error sending: {e}")                # Debugging if an error occurs
-
-def send_hue_shift(value):
-    try:
-        client.send_message("/avatar/parameters/HueShift", value)
-        print(f"Sent: \"/avatar/parameters/HueShift\" : {value}")  # Debugging statement
-    except Exception as e:
-        print(f"Error sending: {e}")                # Debugging if an error occurs
+# Module-level sender for backward compatibility
+sender = OSCSender()
+send_message = sender.send_message

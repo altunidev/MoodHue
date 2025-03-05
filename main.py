@@ -1,42 +1,71 @@
+import sys
 from multiprocessing import Queue, Process
+
+# Import from local modules
+from config import OSC_CONFIG, LOGGING_CONFIG
+from utils import setup_logging, validate_config, get_default_config
 from listener import start_listener
 from processor import process_data
-import argparse
 
-
-IP = "127.0.0.1"
-LISTEN_PORT = 9002
-SEND_PORT = 9000
-DEBUG_LEVEL = 1
-DEBUG_THROTTLE = 1000
-
-
-if __name__ == "__main__":
-    # Add command line arguments for debug level and throttle rate
-    parser = argparse.ArgumentParser(description='VRCFT Emotion Detection')
-    parser.add_argument('--debug', type=int, default=DEBUG_LEVEL, choices=[0, 1, 2],
-                        help='Debug level: 0=minimal, 1=normal, 2=verbose')
-    parser.add_argument('--throttle', type=int, default=DEBUG_THROTTLE,
-                        help='Throttle rate in milliseconds')
-    args = parser.parse_args()
-    
-    print(f"Starting with debug level {args.debug} and throttle rate {args.throttle}ms")
-    
+def setup_processes(config):
+    """
+    Setup listener and processor processes
+    """
     queue = Queue()
-
-    listener_process = Process(target=start_listener, args=(queue, IP, LISTEN_PORT))
-    processor_process = Process(target=process_data, args=(queue, args.debug, args.throttle))
-
-    # Fix: Add True to make processes daemon
+    
+    listener_process = Process(
+        target=start_listener, 
+        args=(queue, config['ip'], config['port']),
+        name="OSC-Listener"
+    )
+    
+    processor_process = Process(
+        target=process_data, 
+        args=(
+            queue, 
+            config['debug_level'], 
+            config.get('throttle_ms', LOGGING_CONFIG['DEFAULT_THROTTLE_MS'])
+        ),
+        name="Facial-Processor"
+    )
+    
     listener_process.daemon = True
     processor_process.daemon = True
-
-    listener_process.start()
-    processor_process.start()
     
-    # Keep the main process running
+    return queue, listener_process, processor_process
+
+def main():
+    # Get default configuration
+    config = get_default_config()
+    
+    # Setup logging
+    logger = setup_logging(
+        debug_level=config['debug_level']
+    )
+    
+    # Validate configuration
+    if not validate_config(config):
+        logger.error("Invalid configuration")
+        sys.exit(1)
+    
     try:
+        # Setup and start processes
+        queue, listener_process, processor_process = setup_processes(config)
+        
+        listener_process.start()
+        processor_process.start()
+        
+        # Wait for processes
         listener_process.join()
         processor_process.join()
+    
     except KeyboardInterrupt:
-        print("Shutting down...")
+        logger.info("Shutdown initiated by user")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        sys.exit(1)
+    finally:
+        logger.info("VRCFT Emotion Detection system shutting down")
+
+if __name__ == "__main__":
+    main()
