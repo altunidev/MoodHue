@@ -17,27 +17,35 @@ LOGGING_CONFIG = {
 # Centralize all global constants from sentiment.py and processor.py
 EMOTION_WEIGHTS: Dict[str, Dict[str, float]] = {
     "happy": {
-        "mouthSmile": 0.6,
-        "eyeLidLeft": -0.4,  # Negative weight for open eyes
-        "eyeLidRight": -0.4,
-    },
-    "sad": {
-        "mouthClosed": 0.5,
-        "eyeLidLeft": 0.3,   # Positive weight for closed eyes
-        "eyeLidRight": 0.3,
-    },
-    "angry": {
-        "EyeSquintLeft1": 0.4,
-        "EyeSquintRight1": 0.4,
-        "mouthPucker": 0.3,
-    },
-    "surprised": {
-        "jawOpen": 0.6,
-        "eyeLidLeft": -0.2,  # Open eyes
-        "eyeLidRight": -0.2,
+        "mouthSmile": 1.0,      # Strong positive for smiling
+        "eyeLidLeft": -0.3,     # Slight negative for droopy eyes
+        "eyeLidRight": -0.3,
     }
 }
+''',
+    "sad": {
+        "mouthClosed": -0.7,    # Strong negative for closed mouth
+        "eyeLidLeft": 0.5,      # Strong positive for droopy eyes
+        "eyeLidRight": 0.5,
+    },
+    "angry": {
+        "EyeSquintLeft1": 0.6,  # Strong positive for squinted eyes
+        "EyeSquintRight1": 0.6,
+        "mouthPucker": 0.4,
+    },
+    "surprised": {
+        "jawOpen": 0.8,          # Strong positive for open jaw
+        "eyeLidLeft": -0.3,      # Slight negative for wide eyes
+        "eyeLidRight": -0.3,
+    }
+}'''
 
+EMOTION_HUES: Dict[str, float] = {
+    "neutral": 0.00,    # Red (low end)
+    "happy": 0.70,      # Not red
+}
+
+'''
 EMOTION_HUES: Dict[str, float] = {
     "happy": 0.19,      # Yellow
     "sad": 0.58,        # Ocean blue
@@ -48,6 +56,19 @@ EMOTION_HUES: Dict[str, float] = {
     "excited": 0.85,    # Electric pink
     "scared": 0.69      # Purple
 }
+'''
+
+COLOR_RANGES = [
+    (0.00, 0.02, "Red (low)"),
+    (0.19, 0.19, "Yellow"),
+    (0.28, 0.28, "Green"),
+    (0.45, 0.45, "Cyan"),
+    (0.58, 0.58, "Ocean Blue"),
+    (0.69, 0.69, "Purple"),
+    (0.75, 0.75, "Dark Pink"),
+    (0.85, 0.85, "Electric Pink"),
+    (0.94, 1.00, "Red (high)")
+]
 
 PROCESSING_CONFIG = {
     'SMOOTHING_WINDOW_SIZE': 10,

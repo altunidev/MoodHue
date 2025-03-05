@@ -1,53 +1,7 @@
 import numpy as np
 import logging
 from collections import deque
-
-# Retain original emotion-related constants
-COLOR_RANGES = [
-    (0.00, 0.02, "Red (low)"),
-    (0.19, 0.19, "Yellow"),
-    (0.28, 0.28, "Green"),
-    (0.45, 0.45, "Cyan"),
-    (0.58, 0.58, "Ocean Blue"),
-    (0.69, 0.69, "Purple"),
-    (0.75, 0.75, "Dark Pink"),
-    (0.85, 0.85, "Electric Pink"),
-    (0.94, 1.00, "Red (high)")
-]
-
-EMOTION_WEIGHTS = {
-    "happy": {
-        "mouthSmile": 0.6,
-        "eyeLidLeft": -0.4,  # Negative weight for open eyes
-        "eyeLidRight": -0.4,
-    },
-    "sad": {
-        "mouthClosed": 0.5,
-        "eyeLidLeft": 0.3,   # Positive weight for closed eyes
-        "eyeLidRight": 0.3,
-    },
-    "angry": {
-        "EyeSquintLeft1": 0.4,
-        "EyeSquintRight1": 0.4,
-        "mouthPucker": 0.3,
-    },
-    "surprised": {
-        "jawOpen": 0.6,
-        "eyeLidLeft": -0.2,  # Open eyes
-        "eyeLidRight": -0.2,
-    }
-}
-
-EMOTION_HUES = {
-    "happy": 0.19,      # Yellow
-    "sad": 0.58,        # Ocean blue
-    "angry": 0.94,      # Red (high end)
-    "surprised": 0.28,  # Green
-    "neutral": 0.02,    # Red (low end)
-    "calm": 0.45,       # Cyan
-    "excited": 0.85,    # Electric pink
-    "scared": 0.69      # Purple
-}
+from config import EMOTION_HUES, EMOTION_WEIGHTS, COLOR_RANGES
 
 def find_matching_parameter(target_param, current_values, logger=None):
     """
